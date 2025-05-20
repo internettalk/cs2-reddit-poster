@@ -38,4 +38,4 @@ def setup_logging() -> None:
         # serialize=True, # Consider if JSON logs are needed for external processing
     )
 
-    logger.info(f"Logging configured. Console: INFO, File: DEBUG at app.log") 
+    logger.info("Logging configured. Console: INFO, File: DEBUG at app.log") 

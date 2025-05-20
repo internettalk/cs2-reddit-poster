@@ -1,7 +1,7 @@
 """Dataclasses for representing application data structures."""
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any # Added Dict and Any based on spec
+from typing import List, Optional # Added Dict and Any based on spec
 
 
 @dataclass(frozen=True)
@@ -104,8 +104,3 @@ class AppConfig:
     reddit_subreddit: str
     steam_poll_interval_seconds: int = 60
     state_file_path: str = "app_state.json"
-
-@dataclass(frozen=True)
-class SteamApiResponse:
-    """Represents the top-level structure of the Steam API response."""
-    events: List['SteamEvent'] # Forward reference for SteamEvent 

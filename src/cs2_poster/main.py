@@ -165,7 +165,7 @@ def generate_refresh_token(
 
         auth_url = reddit_auth.auth.url(scopes=["identity", "submit", "read"], state="cs2poster-auth", duration="permanent")
         
-        logger.info(f"Please open the following URL in your browser to authorize the application:")
+        logger.info("Please open the following URL in your browser to authorize the application:")
         logger.info(auth_url)
         logger.info("Please copy the URL above and paste it into your browser.")
 
