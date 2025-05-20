@@ -33,19 +33,26 @@ class RedditClient:
             # Check if authentication is working by fetching a basic piece of info
             # (e.g., bot's username or subreddit display name)
             # This will raise an exception if auth fails (e.g., bad refresh token)
-            logger.info(f"PRAW initialized. Authenticated as user: {self.reddit.user.me()}")
+            logger.info(
+                f"PRAW initialized. Authenticated as user: {self.reddit.user.me()}"
+            )
             logger.info(f"Target subreddit: {self.target_subreddit}")
         except prawcore.exceptions.OAuthException as e:
-            logger.critical(f"Reddit OAuthException during PRAW initialization: {e}. Check PRAW credentials, especially refresh_token.", exc_info=True)
+            logger.critical(
+                f"Reddit OAuthException during PRAW initialization: {e}. Check PRAW credentials, especially refresh_token.",
+                exc_info=True,
+            )
             # Potentially raise a custom error or let the app handle it higher up
             raise  # Re-raise for now, main app should catch and exit gracefully
         except Exception as e:
-            logger.critical(f"Failed to initialize PRAW Reddit instance: {e}", exc_info=True)
+            logger.critical(
+                f"Failed to initialize PRAW Reddit instance: {e}", exc_info=True
+            )
             raise
 
     def _format_post_title(self, event: ParsedSteamEvent) -> str:
         """Formats the title for the Reddit post."""
-        date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime('%d/%m/%Y')
+        date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime("%d/%m/%Y")
         return f"Counter-Strike 2 update for {date_str}"
 
     def _convert_bbcode_to_markdown(self, bbcode_text: str) -> str:
@@ -57,7 +64,7 @@ class RedditClient:
         # Then, convert HTML to Markdown
         h = html2text.HTML2Text()
         markdown_output = h.handle(html_output)
-        return markdown_output.strip() # Remove any leading/trailing whitespace
+        return markdown_output.strip()  # Remove any leading/trailing whitespace
 
     def _format_post_body(self, event: ParsedSteamEvent) -> str:
         """Formats the body for the Reddit post (Markdown).
@@ -70,7 +77,7 @@ class RedditClient:
         body_parts.append(markdown_body)
 
         body_parts.append(f"\n\n---\nSource: [{event.title}]({event.url})")
-       
+
         return "\n".join(body_parts)
 
     def _find_flair_id(self, subreddit_name: str, flair_text: str) -> Optional[str]:
@@ -80,14 +87,23 @@ class RedditClient:
         try:
             flairs = self.reddit.subreddit(subreddit_name).flair.link_templates
             for flair in flairs:
-                if flair['text'] == flair_text:
-                    logger.debug(f"Found flair ID '{flair['id']}' for text '{flair_text}' on r/{subreddit_name}")
-                    return flair['id']
-            logger.warning(f"Flair with text '{flair_text}' not found on r/{subreddit_name}. Available flairs: {[f['text'] for f in flairs]}")
+                if flair["text"] == flair_text:
+                    logger.debug(
+                        f"Found flair ID '{flair['id']}' for text '{flair_text}' on r/{subreddit_name}"
+                    )
+                    return flair["id"]
+            logger.warning(
+                f"Flair with text '{flair_text}' not found on r/{subreddit_name}. Available flairs: {[f['text'] for f in flairs]}"
+            )
         except prawcore.exceptions.Forbidden:
-            logger.warning(f"Bot does not have permission to access flairs on r/{subreddit_name}. Cannot apply flair.")
+            logger.warning(
+                f"Bot does not have permission to access flairs on r/{subreddit_name}. Cannot apply flair."
+            )
         except Exception as e:
-            logger.error(f"Error finding flair ID for '{flair_text}' on r/{subreddit_name}: {e}", exc_info=True)
+            logger.error(
+                f"Error finding flair ID for '{flair_text}' on r/{subreddit_name}: {e}",
+                exc_info=True,
+            )
         return None
 
     def post_update(self, event: ParsedSteamEvent) -> bool:
@@ -102,12 +118,20 @@ class RedditClient:
         flair_id_to_use = None
 
         if self.reddit_flair_text:
-            logger.info(f"Attempting to find flair ID for '{self.reddit_flair_text}' on r/{subreddit_name}")
-            flair_id_to_use = self._find_flair_id(subreddit_name, self.reddit_flair_text)
+            logger.info(
+                f"Attempting to find flair ID for '{self.reddit_flair_text}' on r/{subreddit_name}"
+            )
+            flair_id_to_use = self._find_flair_id(
+                subreddit_name, self.reddit_flair_text
+            )
             if flair_id_to_use:
-                logger.info(f"Using flair ID: {flair_id_to_use} for flair text: '{self.reddit_flair_text}'")
+                logger.info(
+                    f"Using flair ID: {flair_id_to_use} for flair text: '{self.reddit_flair_text}'"
+                )
             else:
-                logger.warning(f"Could not find flair ID for '{self.reddit_flair_text}'. Posting without flair.")
+                logger.warning(
+                    f"Could not find flair ID for '{self.reddit_flair_text}'. Posting without flair."
+                )
 
         logger.info(f"Attempting to post to r/{subreddit_name}: '{title}'")
 
@@ -118,15 +142,28 @@ class RedditClient:
             }
             if flair_id_to_use:
                 submission_params["flair_id"] = flair_id_to_use
-            
-            submission = self.reddit.subreddit(subreddit_name).submit(**submission_params)
-            logger.success(f"Successfully posted to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}")
+
+            submission = self.reddit.subreddit(subreddit_name).submit(
+                **submission_params
+            )
+            logger.success(
+                f"Successfully posted to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}"
+            )
             return True
         except prawcore.exceptions.Forbidden as e:
-            logger.error(f"Reddit API error (Forbidden 403): {e}. Check bot permissions on r/{subreddit_name}. Does the bot have posting rights? Is it banned?", exc_info=True)
+            logger.error(
+                f"Reddit API error (Forbidden 403): {e}. Check bot permissions on r/{subreddit_name}. Does the bot have posting rights? Is it banned?",
+                exc_info=True,
+            )
         except prawcore.exceptions.PrawcoreException as e:
-            logger.error(f"Reddit API error while posting to r/{subreddit_name}: {e}", exc_info=True)
+            logger.error(
+                f"Reddit API error while posting to r/{subreddit_name}: {e}",
+                exc_info=True,
+            )
         except Exception as e:
-            logger.error(f"An unexpected error occurred while posting to Reddit: {e}", exc_info=True)
-        
+            logger.error(
+                f"An unexpected error occurred while posting to Reddit: {e}",
+                exc_info=True,
+            )
+
         return False

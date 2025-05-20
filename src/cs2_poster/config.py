@@ -20,9 +20,11 @@ def load_configuration() -> AppConfig:
     )
 
     return AppConfig(
-        steam_poll_interval_seconds=int(os.environ.get("STEAM_POLL_INTERVAL_SECONDS", 60)),
+        steam_poll_interval_seconds=int(
+            os.environ.get("STEAM_POLL_INTERVAL_SECONDS", 60)
+        ),
         state_file_path=os.environ.get("STATE_FILE_PATH", "app_state.json"),
         reddit_credentials=reddit_creds,
         reddit_subreddit=os.environ["REDDIT_SUBREDDIT"],
-        reddit_flair_text=os.environ.get("REDDIT_FLAIR_TEXT", "Game Update")
+        reddit_flair_text=os.environ.get("REDDIT_FLAIR_TEXT", "Game Update"),
     )

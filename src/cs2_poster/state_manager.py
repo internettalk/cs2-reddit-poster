@@ -23,9 +23,13 @@ def load_state(config: AppConfig) -> Dict[str, Any]:
                 logger.info(f"Successfully loaded state from {state_file}")
                 return state_data
         except json.JSONDecodeError as e:
-            logger.warning(f"Could not decode JSON from state file {state_file}: {e}. Starting with empty state.")
+            logger.warning(
+                f"Could not decode JSON from state file {state_file}: {e}. Starting with empty state."
+            )
         except IOError as e:
-            logger.warning(f"Could not read state file {state_file}: {e}. Starting with empty state.")
+            logger.warning(
+                f"Could not read state file {state_file}: {e}. Starting with empty state."
+            )
     else:
         logger.info(f"State file {state_file} not found. Starting with empty state.")
     return {}
@@ -41,7 +45,9 @@ def save_state(state_data: Dict[str, Any], config: AppConfig) -> None:
     except IOError as e:
         logger.error(f"Could not write state file {state_file}: {e}")
     except Exception as e:
-        logger.error(f"An unexpected error occurred while saving state to {state_file}: {e}")
+        logger.error(
+            f"An unexpected error occurred while saving state to {state_file}: {e}"
+        )
 
 
 def get_last_processed_posttime(state: Dict[str, Any]) -> Optional[int]:
@@ -52,4 +58,4 @@ def get_last_processed_posttime(state: Dict[str, Any]) -> Optional[int]:
 def set_last_processed_posttime(state: Dict[str, Any], posttime: int) -> None:
     """Updates the last processed event posttime in the state."""
     state[STATE_KEY_LAST_EVENT_POSTTIME] = posttime
-    logger.info(f"Last processed event posttime set to: {posttime}") 
+    logger.info(f"Last processed event posttime set to: {posttime}")
