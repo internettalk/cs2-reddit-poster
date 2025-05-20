@@ -102,5 +102,6 @@ class AppConfig:
     """Main application configuration, loaded from environment variables."""
     reddit_credentials: RedditCredentials
     reddit_subreddit: str
+    reddit_flair_text: Optional[str] = "Game Update" # Optional: Flair text to apply, e.g., "Game Update"
     steam_poll_interval_seconds: int = 60
     state_file_path: str = "app_state.json"

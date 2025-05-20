@@ -6,6 +6,7 @@ from loguru import logger
 from datetime import datetime, UTC
 import bbcode
 import html2text
+from typing import Optional
 
 from .data_models import AppConfig, ParsedSteamEvent
 
@@ -16,6 +17,7 @@ class RedditClient:
     def __init__(self, config: AppConfig):
         self.config = config.reddit_credentials
         self.target_subreddit = config.reddit_subreddit
+        self.reddit_flair_text = config.reddit_flair_text
         self.reddit: praw.Reddit
         self._initialize_praw()
 
@@ -78,6 +80,23 @@ class RedditClient:
 
         return "\n".join(body_parts)
 
+    def _find_flair_id(self, subreddit_name: str, flair_text: str) -> Optional[str]:
+        """Finds the ID of a flair by its text on a subreddit."""
+        if not flair_text:
+            return None
+        try:
+            flairs = self.reddit.subreddit(subreddit_name).flair.link_templates
+            for flair in flairs:
+                if flair['text'] == flair_text:
+                    logger.debug(f"Found flair ID '{flair['id']}' for text '{flair_text}' on r/{subreddit_name}")
+                    return flair['id']
+            logger.warning(f"Flair with text '{flair_text}' not found on r/{subreddit_name}. Available flairs: {[f['text'] for f in flairs]}")
+        except prawcore.exceptions.Forbidden:
+            logger.warning(f"Bot does not have permission to access flairs on r/{subreddit_name}. Cannot apply flair.")
+        except Exception as e:
+            logger.error(f"Error finding flair ID for '{flair_text}' on r/{subreddit_name}: {e}", exc_info=True)
+        return None
+
     def post_update(self, event: ParsedSteamEvent) -> bool:
         """Submits a new post to the configured subreddit for the given event.
 
@@ -87,17 +106,27 @@ class RedditClient:
         title = self._format_post_title(event)
         body = self._format_post_body(event)
         subreddit_name = self.target_subreddit
+        flair_id_to_use = None
+
+        if self.reddit_flair_text:
+            logger.info(f"Attempting to find flair ID for '{self.reddit_flair_text}' on r/{subreddit_name}")
+            flair_id_to_use = self._find_flair_id(subreddit_name, self.reddit_flair_text)
+            if flair_id_to_use:
+                logger.info(f"Using flair ID: {flair_id_to_use} for flair text: '{self.reddit_flair_text}'")
+            else:
+                logger.warning(f"Could not find flair ID for '{self.reddit_flair_text}'. Posting without flair.")
 
         logger.info(f"Attempting to post to r/{subreddit_name}: '{title}'")
 
         try:
-            # PRAW's submit method is synchronous, run it in a thread
-            # to avoid blocking the asyncio event loop.
-            submission = self.reddit.subreddit(subreddit_name).submit(
-                title=title,
-                selftext=body
-                # TODO: Add flair_id if specified in config and needed
-            )
+            submission_params = {
+                "title": title,
+                "selftext": body,
+            }
+            if flair_id_to_use:
+                submission_params["flair_id"] = flair_id_to_use
+            
+            submission = self.reddit.subreddit(subreddit_name).submit(**submission_params)
             logger.success(f"Successfully posted to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}")
             return True
         except prawcore.exceptions.Forbidden as e:
