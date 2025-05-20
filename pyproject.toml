@@ -5,6 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bbcode>=1.1.0",
+    "html2text>=2025.4.15",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "praw>=7.8.1",
