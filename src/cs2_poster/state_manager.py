@@ -8,6 +8,7 @@ from loguru import logger
 from .data_models import AppConfig
 
 STATE_KEY_LAST_EVENT_POSTTIME = "last_processed_event_posttime"
+STATE_KEY_LAST_REDDIT_POSTTIME = "last_reddit_post_time"
 
 
 def load_state(config: AppConfig) -> Dict[str, Any]:
@@ -59,3 +60,14 @@ def set_last_processed_posttime(state: Dict[str, Any], posttime: int) -> None:
     """Updates the last processed event posttime in the state."""
     state[STATE_KEY_LAST_EVENT_POSTTIME] = posttime
     logger.info(f"Last processed event posttime set to: {posttime}")
+
+
+def get_last_reddit_post_time(state: Dict[str, Any]) -> Optional[int]:
+    """Retrieves the last Reddit post time from the state."""
+    return state.get(STATE_KEY_LAST_REDDIT_POSTTIME)
+
+
+def set_last_reddit_post_time(state: Dict[str, Any], posttime: int) -> None:
+    """Updates the last Reddit post time in the state."""
+    state[STATE_KEY_LAST_REDDIT_POSTTIME] = posttime
+    logger.info(f"Last Reddit post time set to: {posttime}")

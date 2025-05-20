@@ -18,6 +18,8 @@ from .state_manager import (
     load_state,
     save_state,
     set_last_processed_posttime,
+    get_last_reddit_post_time,
+    set_last_reddit_post_time,
 )
 from .steam_client import SteamClient
 
@@ -37,7 +39,9 @@ def polling_loop(
 
     app_state = load_state(config)
     last_posttime = get_last_processed_posttime(app_state)
+    last_reddit_post_time = get_last_reddit_post_time(app_state)
     logger.info(f"Initial last processed event posttime: {last_posttime}")
+    logger.info(f"Initial last Reddit post time: {last_reddit_post_time}")
 
     while True:  # Changed from `while keep_running`
         logger.info("Polling for new CS2 updates...")
@@ -55,16 +59,22 @@ def polling_loop(
                     logger.info(
                         f"Processing event: GID '{event.gid}', Title '{event.title}'"
                     )
-                    # Simple check to avoid double-posting very similar titles if API returns duplicates across calls
-                    # This is a basic safeguard; robust duplicate checking is complex.
-                    # if last_posttime and event.timestamp == last_posttime:
-                    #     logger.warning(f"Event posttime {event.timestamp} is same as last processed posttime. Skipping to prevent potential duplicate.")
-                    #     continue
+
+                    # Enforce 2-hour Reddit post rate limit
+                    current_time = int(time.time())
+                    if last_reddit_post_time is not None and (current_time - last_reddit_post_time) < 7200:
+                        wait_time = 7200 - (current_time - last_reddit_post_time)
+                        logger.warning(
+                            f"Reddit post rate limit in effect. Last post was {current_time - last_reddit_post_time} seconds ago. Skipping posting. Next post allowed in {wait_time} seconds."
+                        )
+                        break  # Stop processing further events in this batch
 
                     success = reddit_client.post_update(event)
                     if success:
                         last_posttime = event.timestamp  # Update last_posttime to the timestamp of the successfully posted event
                         set_last_processed_posttime(app_state, last_posttime)
+                        last_reddit_post_time = current_time  # Update last_reddit_post_time
+                        set_last_reddit_post_time(app_state, last_reddit_post_time)
                         save_state(
                             app_state, config
                         )  # Save state after each successful post
@@ -76,9 +86,6 @@ def polling_loop(
                         logger.error(
                             f"Failed to post event GID: {event.gid}. Will retry this event in the next cycle if it's still fetched."
                         )
-                        # If a post fails, we don't update last_posttime, so it will be re-fetched
-                        # and re-attempted in the next polling cycle (assuming it's still in the feed).
-                        # Consider a more robust retry/error queue for individual posts if this becomes an issue.
                         break  # Stop processing this batch on first error to avoid spamming or hitting rate limits
 
                 if processed_event_in_batch:
