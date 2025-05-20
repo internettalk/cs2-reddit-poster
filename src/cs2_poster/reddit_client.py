@@ -7,6 +7,7 @@ from datetime import datetime, UTC
 import bbcode
 import html2text
 from typing import Optional
+import re
 
 from .data_models import AppConfig, ParsedSteamEvent
 
@@ -56,7 +57,7 @@ class RedditClient:
         return f"Counter-Strike 2 update for {date_str}"
 
     def _convert_bbcode_to_markdown(self, bbcode_text: str) -> str:
-        """Converts BBCode text to Markdown."""
+        """Converts BBCode text to Markdown, then applies custom formatting for sections and subsections."""
         # First, convert BBCode to HTML
         parser = bbcode.Parser()
         html_output = parser.format(bbcode_text)
@@ -64,7 +65,25 @@ class RedditClient:
         # Then, convert HTML to Markdown
         h = html2text.HTML2Text()
         markdown_output = h.handle(html_output)
-        return markdown_output.strip()  # Remove any leading/trailing whitespace
+        markdown_output = markdown_output.strip()  # Remove any leading/trailing whitespace
+
+        # Post-process for custom section/subsection formatting
+        processed_lines = []
+        section_pattern = re.compile(r"^\[\s*(.+?)\s*\]\s*$")
+        subsection_pattern = re.compile(r"^([^\s\-*+][^:]*?):\s*$")
+        for line in markdown_output.splitlines():
+            # Section: [ SECTION_TITLE ] -> ## SECTION_TITLE
+            section_match = section_pattern.match(line)
+            if section_match:
+                processed_lines.append(f"## {section_match.group(1).strip()}")
+                continue
+            # Subsection: SUBSECTION_TITLE: -> ### SUBSECTION_TITLE (not in bullet/indented)
+            subsection_match = subsection_pattern.match(line)
+            if subsection_match:
+                processed_lines.append(f"### {subsection_match.group(1).strip()}")
+                continue
+            processed_lines.append(line)
+        return "\n".join(processed_lines)
 
     def _format_post_body(self, event: ParsedSteamEvent) -> str:
         """Formats the body for the Reddit post (Markdown).
