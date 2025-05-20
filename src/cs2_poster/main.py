@@ -1,6 +1,5 @@
 """Main application entry point for the CS2 Update Announcer."""
 
-import signal
 import sys
 import time
 from typing import List
@@ -22,20 +21,10 @@ from .state_manager import (
 )
 from .steam_client import SteamClient
 
-# Global variable to control the main loop, can be set by signal handler
-keep_running = True
-
 app = typer.Typer(help="Monitors CS2 game updates and posts them to Reddit.")
 # Create a new Typer app for the refresh token command to keep it separate
 auth_app = typer.Typer(name="auth", help="Authentication utilities, e.g., for generating a new Reddit refresh token.")
 app.add_typer(auth_app)
-
-
-def signal_handler(signum, frame):
-    """Handles SIGINT and SIGTERM to allow graceful shutdown."""
-    global keep_running
-    logger.info(f"Received signal {signum}. Shutting down gracefully...")
-    keep_running = False
 
 
 def polling_loop(
@@ -44,13 +33,12 @@ def polling_loop(
     reddit_client: RedditClient
 ):
     """The main polling loop for fetching updates and posting them."""
-    global keep_running
 
     app_state = load_state(config)
     last_posttime = get_last_processed_posttime(app_state)
     logger.info(f"Initial last processed event posttime: {last_posttime}")
 
-    while keep_running:
+    while True:  # Changed from `while keep_running`
         logger.info("Polling for new CS2 updates...")
         try:
             new_events: List[ParsedSteamEvent] = steam_client.fetch_latest_events(last_event_posttime=last_posttime)
@@ -61,9 +49,6 @@ def polling_loop(
                 logger.info(f"Found {len(new_events)} new event(s) to process.")
                 processed_event_in_batch = False
                 for event in new_events: # Processed oldest to newest by steam_client
-                    if not keep_running: # Check before processing each event
-                        logger.info("Shutdown signal received during event processing. Stopping.")
-                        break
                     
                     logger.info(f"Processing event: GID '{event.gid}', Title '{event.title}'")
                     # Simple check to avoid double-posting very similar titles if API returns duplicates across calls
@@ -93,17 +78,12 @@ def polling_loop(
             logger.error(f"An unexpected error occurred in the polling loop: {e}", exc_info=True)
             # Continue loop after error, but wait before retrying to avoid rapid-fire errors
             # if it's a persistent issue.
-            if keep_running:
-                error_wait_time = 30 # seconds
-                logger.info(f"Waiting for {error_wait_time} seconds after unexpected error before next poll.")
-                time.sleep(error_wait_time)
+            error_wait_time = 30 # seconds
+            logger.info(f"Waiting for {error_wait_time} seconds after unexpected error before next poll.")
+            time.sleep(error_wait_time)
 
-        if keep_running:
-            logger.debug(f"Waiting for {config.steam_poll_interval_seconds} seconds before next poll...")
-            # The signal handler will interrupt this sleep if a signal is received.
-            time.sleep(config.steam_poll_interval_seconds)
-
-    logger.info("Polling loop has ended.")
+        logger.debug(f"Waiting for {config.steam_poll_interval_seconds} seconds before next poll...")
+        time.sleep(config.steam_poll_interval_seconds)
 
 
 @auth_app.command("refresh-token")
@@ -212,10 +192,6 @@ def generate_refresh_token(
 @app.command()
 def main():
     """Entry point for the CS2 Update Announcer application."""
-    # Setup signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     setup_logging()
     try:
         app_config = load_configuration()
@@ -246,21 +222,10 @@ def main():
     try:
         polling_loop(app_config, steam_client, reddit_client)
     except KeyboardInterrupt:
-        # This is handled by the signal_handler now, but keep for safety.
-        logger.info("KeyboardInterrupt received directly in main. Shutting down.")
-    finally:
-        logger.info("Cleaning up resources...")
-        # Ensure SteamClient's httpx client is closed
-        # PRAW client cleanup is generally handled by PRAW itself on exit or GC.
-        if steam_client:
-            logger.info("Closing Steam client...")
-            try:
-                steam_client.close()
-            except Exception as e:
-                logger.error(f"Error during Steam client cleanup: {e}", exc_info=True)
+        logger.info("KeyboardInterrupt received. Shutting down...")
 
-        logger.info("CS2 Update Announcer shut down.")
-        sys.exit(0)
+    logger.info("CS2 Update Announcer shut down.")
+    sys.exit(0)
 
 
 if __name__ == "__main__":
