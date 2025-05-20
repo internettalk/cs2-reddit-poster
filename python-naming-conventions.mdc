@@ -1,0 +1,67 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python Best Practice: Naming Conventions (PEP 8)
+
+Consistent naming is crucial for writing readable and maintainable Python code. PEP 8, the official style guide for Python code, provides comprehensive guidelines for naming various identifiers.
+
+## Key Naming Conventions:
+
+1.  **General Principles:**
+    *   Choose names that are descriptive and unambiguous.
+    *   Avoid single-character names except for simple counters or iterators (e.g., `i`, `j`, `k`, `x`, `y`).
+    *   Don't use characters that can be confused (e.g., lowercase `l` and uppercase `I`, uppercase `O` and digit `0`).
+
+2.  **Packages and Modules:**
+    *   Modules should have short, all-lowercase names. Underscores can be used if it improves readability (e.g., `my_module`, `database_utils`).
+    *   Package names should also be short, all-lowercase, and preferably without underscores (e.g., `mypackage`).
+
+3.  **Classes:**
+    *   Class names should normally use the CapWords (or PascalCase) convention (e.g., `MyClass`, `HttpClient`).
+    *   Exception names, being classes, should also follow this (e.g., `CustomError`).
+
+4.  **Functions and Methods:**
+    *   Function and method names should be lowercase, with words separated by underscores as necessary to improve readability (snake_case) (e.g., `calculate_total_price`, `get_user_data`).
+    *   For methods intended for "internal use" (not part of the public API), prefix the name with a single underscore (e.g., `_internal_helper`). This is a convention, not enforced by the interpreter.
+    *   To invoke Python's name mangling for class attributes (to avoid clashes with subclasses), use two leading underscores (e.g., `__private_method`).
+
+5.  **Variables:**
+    *   Variable names should follow the same convention as functions: lowercase with words separated by underscores (snake_case) (e.g., `user_name`, `item_count`).
+
+6.  **Constants:**
+    *   Constant names should be written in all capital letters with underscores separating words (e.g., `MAX_OVERFLOW`, `DEFAULT_TIMEOUT`). Constants are typically defined at the module level.
+
+7.  **Function and Method Arguments:**
+    *   Instance methods: The first argument should always be `self`.
+    *   Class methods: The first argument should always be `cls`.
+
+## Examples:
+
+```python
+# Module: shipping_calculator.py
+
+MAX_ITEMS = 100  # Constant
+
+class ShippingCalculator:  # Class name (CapWords)
+    def __init__(self, api_key): # Method name (snake_case), self
+        self.api_key = api_key # Variable name (snake_case)
+        self._base_rate = 5.0 # "Internal use" variable
+
+    def calculate_shipping_cost(self, weight, distance): # Method name (snake_case)
+        if weight > MAX_ITEMS:
+            raise ValueError("Too many items")
+        cost = self._base_rate + (weight * 0.5) + (distance * 0.1)
+        return cost
+
+def get_default_calculator(): # Function name (snake_case)
+    return ShippingCalculator(api_key="default_key")
+
+# Usage
+calculator = get_default_calculator()
+total_cost = calculator.calculate_shipping_cost(weight=10, distance=100)
+print(f"Total shipping cost: {total_cost}")
+```
+
+Adhering to these PEP 8 naming conventions will make your Python code more consistent, easier to read for others (and your future self), and integrate better with the broader Python ecosystem.

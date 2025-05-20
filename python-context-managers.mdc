@@ -1,0 +1,120 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python Best Practice: Using Context Managers (`with` statement)
+
+Context managers, utilized via the `with` statement, are a powerful Python feature for managing resources effectively. They ensure that resources are properly acquired and, crucially, released even if errors occur, leading to cleaner and more robust code.
+
+## Why Use Context Managers?
+
+*   **Automatic Resource Management:** Guarantees that setup and teardown operations (like opening/closing files, acquiring/releasing locks, database connections) are performed.
+*   **Exception Safety:** Ensures resources are released correctly even in the presence of exceptions, preventing resource leaks.
+*   **Readability:** Makes the code cleaner and more readable by abstracting away the `try...finally` boilerplate often needed for manual resource management.
+
+## Common Use Cases:
+
+1.  **File Operations:** This is the most common example. The `with` statement ensures the file is closed automatically.
+    ```python
+    # Correct way using 'with'
+    try:
+        with open("my_file.txt", "w") as f:
+            f.write("Hello, world!\n")
+            # f.write(123) # This would cause a TypeError
+    except IOError as e:
+        print(f"IOError: {e}")
+    except TypeError as e:
+        print(f"TypeError during write: {e}")
+    # File is automatically closed here, whether an exception occurred or not.
+
+    # Old way (manual close, error-prone if exceptions occur before close)
+    # f = open("my_file.txt", "w")
+    # try:
+    #     f.write("Hello, world!\n")
+    # finally:
+    #     f.close()
+    ```
+
+2.  **Locks (Threading/Multiprocessing):** Ensuring locks are acquired and released.
+    ```python
+    import threading
+
+    my_lock = threading.Lock()
+
+    # with my_lock:
+    #     # Critical section: operations on shared resource
+    #     print("Lock acquired, performing critical operations...")
+    # Lock is automatically released here
+
+    # Without 'with', you would need try...finally:
+    # my_lock.acquire()
+    # try:
+    #     # Critical section
+    # finally:
+    #     my_lock.release()
+    ```
+
+3.  **Database Connections:** Managing database connection lifecycles.
+    ```python
+    # Example with a hypothetical database library
+    # import db_library
+
+    # try:
+    #     with db_library.connect("my_database.db") as conn:
+    #         cursor = conn.cursor()
+    #         cursor.execute("SELECT * FROM users")
+    #         for row in cursor.fetchall():
+    #             print(row)
+    # except db_library.DatabaseError as e:
+    #     print(f"Database error: {e}")
+    # Connection is automatically closed/committed/rolled_back here based on library
+    ```
+
+4.  **Custom Context Managers:** You can create your own context managers for specific setup/teardown logic using either a class with `__enter__` and `__exit__` methods, or the `@contextmanager` decorator from the `contextlib` module.
+
+    **Class-based:**
+    ```python
+    class Timer:
+        def __enter__(self):
+            import time
+            self.start_time = time.time()
+            return self # Value returned by __enter__ is bound to the 'as' variable
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            import time
+            end_time = time.time()
+            print(f"Block executed in {end_time - self.start_time:.4f} seconds")
+            # If __exit__ returns True, any exception is suppressed.
+            # If it returns False or None (implicitly), the exception is re-raised.
+            return False
+
+    with Timer() as t:
+        # Code to time
+        for _ in range(1000000):
+            pass
+    ```
+
+    **Using `contextlib.contextmanager`:**
+    ```python
+    from contextlib import contextmanager
+    import time
+
+    @contextmanager
+    def simple_timer():
+        start_time = time.time()
+        try:
+            yield # Code inside the 'with' block runs here
+        finally:
+            end_time = time.time()
+            print(f"Block executed in {end_time - start_time:.4f} seconds (using decorator)")
+
+    with simple_timer():
+        # Code to time
+        for _ in range(1000000):
+            pass
+    ```
+
+## Recommendation:
+
+Whenever you are working with resources that need to be explicitly acquired and released (especially if errors can occur between acquisition and release), prefer using the `with` statement and context managers. This leads to more reliable and easier-to-understand Python code.

@@ -1,0 +1,100 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python Best Practice: Effective Docstrings (PEP 257)
+
+Docstrings (documentation strings) are a cornerstone of good Python code. They provide a convenient way to associate documentation with Python modules, functions, classes, and methods. PEP 257 provides conventions for writing good docstrings.
+
+## Why Use Docstrings?
+
+*   **Clarity:** Explain what the code does, its arguments, and what it returns.
+*   **Maintainability:** Help other developers (and your future self) understand and use the code.
+*   **Automatic Documentation:** Tools like Sphinx can extract docstrings to generate project documentation.
+*   **Interactive Help:** The built-in `help()` function and IDEs use docstrings to provide information.
+
+## Key Docstring Conventions (PEP 257):
+
+1.  **Placement:**
+    *   Write docstrings for all public modules, functions, classes, and methods.
+    *   The docstring is a string literal that occurs as the first statement in a module, function, class, or method definition.
+
+2.  **Format:**
+    *   Use triple quotes (`"""docstring goes here"""`) for all docstrings, even one-liners.
+    *   For one-line docstrings, keep the opening and closing quotes on the same line.
+        ```python
+        def square(n):
+            """Return the square of a number."""
+            return n * n
+        ```
+    *   For multi-line docstrings, the summary line should be on the first line, followed by a blank line, then a more detailed explanation. The closing triple quotes should be on a line by themselves.
+        ```python
+        def complex_function(arg1, arg2):
+            """Summarize the function in one line.
+
+            Provide a more detailed explanation of what the function does,
+            its parameters, and any side effects or exceptions raised.
+            """
+            # ... function body ...
+            pass
+        ```
+
+3.  **Content - What to Include:**
+
+    *   **Modules:** Describe the module's purpose and any important classes or functions it exports.
+    *   **Classes:** Summarize the class's behavior. Document important attributes and methods.
+        *   The docstring for a class should summarize its behavior and list the public methods and instance variables.
+        *   If the class is subclassed from another class and its behavior is substantially different, mention this.
+    *   **Functions/Methods:**
+        *   A concise summary of its purpose.
+        *   Arguments: Describe each parameter, its type (if not using type hints separately), and its meaning.
+        *   Return Value: Describe the returned value, its type, and its meaning.
+        *   Side Effects: Mention any side effects (e.g., modifying global variables, file I/O).
+        *   Exceptions Raised: List any exceptions that can be raised and under what conditions.
+
+4.  **Docstring Styles (Beyond PEP 257 core):**
+    While PEP 257 defines the basics, more structured formats like Google Style, NumPy/SciPy Style, or reStructuredText (used by Sphinx) are common for detailing arguments, return values, and attributes. Choose one style and use it consistently.
+
+    **Example (Simplified Google Style):**
+    ```python
+    class MyClass:
+        """This is a brief summary of MyClass.
+
+        This class does something interesting and has several attributes
+        and methods for users to interact with.
+
+        Attributes:
+            attr1 (str): Description of attribute one.
+            attr2 (int): Description of attribute two.
+        """
+        def __init__(self, attr1, attr2=0):
+            self.attr1 = attr1
+            self.attr2 = attr2
+
+        def public_method(self, param1, param2):
+            """Does something useful with the parameters.
+
+            Args:
+                param1 (type): Description of param1.
+                param2 (type): Description of param2.
+
+            Returns:
+                type: Description of the return value.
+
+            Raises:
+                CustomError: If a specific condition is met.
+            """
+            if not param1:
+                raise CustomError("param1 cannot be empty")
+            # ... implementation ...
+            return "result"
+    ```
+
+## Recommendations:
+
+*   **Write docstrings as you write the code:** Don't leave it as an afterthought.
+*   **Be clear and concise:** Avoid jargon if possible, or explain it.
+*   **Keep docstrings up-to-date:** If you change the code's behavior, arguments, or return values, update the docstring accordingly.
+
+Well-written docstrings are a hallmark of professional Python code. They significantly improve the usability and long-term value of your software.

@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Python Best Practice: Import Organization
+
+Effective Python development hinges on clear, well-organized imports. Proper import management enhances readability, reduces namespace conflicts, and simplifies dependency tracking.
+
+## Recommendations:
+
+1.  **Order Imports Correctly (PEP 8):**
+    Imports should be grouped in the following order, with a blank line separating each group:
+    *   Standard library imports (e.g., `os`, `sys`).
+    *   Related third-party imports (e.g., `requests`, `numpy`).
+    *   Local application/library specific imports.
+
+    ```python
+    # Correct ordering
+    import os
+    import sys
+
+    import requests
+    import numpy as np
+
+    from . import my_module
+    from .my_other_module import my_function
+    ```
+
+2.  **Use Absolute Imports by Default:**
+    Absolute imports are generally preferred as they are more explicit and less prone to ambiguity, especially in larger projects.
+
+    ```python
+    # Preferred (absolute import)
+    from my_package.my_module import my_class
+
+    # Less preferred (relative import, use sparingly for sibling modules within the same package)
+    # from .my_module import my_class
+    ```
+
+3.  **Avoid `from <module> import *`:**
+    This practice can pollute the global namespace, making it unclear where names originate from and potentially leading to conflicts. It also hinders static analysis tools.
+
+    ```python
+    # Avoid this:
+    # from math import *
+    # result = sqrt(pi) # Where do sqrt and pi come from?
+
+    # Prefer this:
+    import math
+    result = math.sqrt(math.pi)
+
+    # Or this, if only a few names are needed:
+    from math import sqrt, pi
+    result = sqrt(pi)
+    ```
+
+4.  **One Import Per Line (Generally):**
+    While Python allows multiple imports on one line (e.g., `import os, sys`), it's generally clearer to have one import per line.
+
+    ```python
+    # Preferred
+    import os
+    import sys
+
+    # Less preferred
+    # import os, sys
+    ```
+    However, for `from ... import ...` statements with multiple names from the same module, grouping them is acceptable and often preferred:
+    ```python
+    from collections import Counter, defaultdict, deque
+    ```
+
+5.  **Alphabetize Imports (Within Groups):**
+    Alphabetizing imports within each group can make them easier to find and manage. Many linters and formatters can automate this.
+
+    ```python
+    import collections
+    import itertools
+    import os
+    import sys
+    ```
+
+By adhering to these import best practices, you contribute to a cleaner, more maintainable, and more collaborative Python codebase.
+

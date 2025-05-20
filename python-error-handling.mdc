@@ -1,0 +1,117 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Python Best Practice: Robust Error Handling
+
+Effective error handling is critical for building reliable and user-friendly Python applications. Proper use of exceptions allows your program to gracefully manage unexpected situations, provide informative feedback, and maintain stability.
+
+## Key Principles for Error Handling:
+
+1.  **Be Specific with `except` Clauses:**
+    Avoid bare `except:` clauses or catching overly broad exceptions like `Exception` or `BaseException` unless you have a very good reason (e.g., top-level error logging and program termination). Catch specific exceptions that you anticipate and know how to handle.
+
+    ```python
+    # Good: Specific exceptions
+    try:
+        result = 10 / int(user_input)
+    except ValueError:
+        print("Invalid input: Please enter a number.")
+    except ZeroDivisionError:
+        print("Cannot divide by zero.")
+
+    # Bad: Too broad
+    # try:
+    #     # ... some code ...
+    # except Exception:
+    #     print("An unknown error occurred.") # Hides the actual error type
+    ```
+
+2.  **Use `try-except-else-finally` Appropriately:**
+    *   `try`: Contains the code that might raise an exception.
+    *   `except`: Handles specific exceptions raised in the `try` block.
+    *   `else`: Contains code that should run if no exceptions were raised in the `try` block. This helps to avoid accidentally catching exceptions from code that wasn't intended to be part of the guarded block.
+    *   `finally`: Contains cleanup code that must run regardless of whether an exception occurred or not (e.g., closing files or releasing resources).
+
+    ```python
+    file = None
+    try:
+        file = open("data.txt", "r")
+        content = file.read()
+    except FileNotFoundError:
+        print("Error: data.txt not found.")
+    except IOError:
+        print("Error: Could not read from data.txt.")
+    else:
+        print(f"File content: {content}")
+        # This runs only if no exceptions occurred in the try block
+    finally:
+        if file:
+            file.close()
+            print("File closed.")
+    ```
+
+3.  **Don't Suppress Errors Silently (Unless Intentional):**
+    If you catch an exception, either handle it meaningfully (e.g., log it, inform the user, attempt recovery) or re-raise it if you can't handle it at the current level.
+
+    ```python
+    def process_data(data):
+        try:
+            # ... process data ...
+            return complex_calculation(data)
+        except TypeError as e:
+            print(f"Error processing data: {e}. Data might be malformed.")
+            # Optionally, re-raise or raise a custom exception
+            # raise MyProcessingError("Failed due to invalid data type") from e
+            return None # Or some default/fallback value
+    ```
+
+4.  **Create Custom Exceptions for Your Application:**
+    For errors specific to your application domain, define custom exception classes. This makes your error handling more organized and allows calling code to catch specific application-level errors.
+
+    ```python
+    class NetworkError(Exception):
+        """Custom exception for network-related errors."""
+        pass
+
+    class AuthenticationError(NetworkError):
+        """Custom exception for authentication failures."""
+        pass
+
+    def fetch_user_profile(user_id):
+        if not is_authenticated(user_id):
+            raise AuthenticationError(f"User {user_id} not authenticated.")
+        # ... fetch profile ...
+    ```
+
+5.  **Clean Up Resources with `finally` or Context Managers (`with`):**
+    Ensure that resources like files, network connections, or locks are always released, even if errors occur. The `finally` block or, preferably, context managers (`with` statement) are ideal for this.
+
+    ```python
+    # Using finally (shown above)
+
+    # Using context manager (preferred for file I/O, locks, etc.)
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        print("Config file not found.")
+    except json.JSONDecodeError:
+        print("Error decoding config file.")
+    ```
+
+6.  **Logging Errors:**
+    Use the `logging` module to record errors, especially in applications and services. Logs provide crucial information for debugging and monitoring.
+
+    ```python
+    import logging
+
+    try:
+        # ... critical operation ...
+    except ValueError as e:
+        logging.error(f"ValueError during critical operation: {e}", exc_info=True)
+        # exc_info=True includes stack trace in the log
+    ```
+
+By following these error handling best practices, you can build Python programs that are more resilient, easier to debug, and provide a better experience for users.
