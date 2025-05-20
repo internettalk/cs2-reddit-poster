@@ -1,0 +1,144 @@
+---
+description: Use the UV packaging tool for Python operations
+globs: 
+alwaysApply: false
+---
+<rule>
+name: enforce-uv-for-python
+description: Recommends using the UV packaging tool for Python operations.
+filters:
+  # Apply to common script, config, and Python-related files.
+  - type: file_extension
+    pattern: "\\\\.(py|sh|bash|zsh|fish|Makefile|Dockerfile|ya?ml|toml|md)$"
+  # Pre-filter files to ensure they contain relevant keywords for performance.
+  # This helps narrow down files before applying specific action conditions.
+  - type: content
+    pattern: "(pip|python(3)? -m venv|virtualenv|activate|\\\\bpython(3)?(\\\\s+-[a-zA-Z]){0,1}\\\\s+([^-\\\\s][^\\\\s]*\\\\.py))"
+
+actions:
+  - type: suggest
+    message: |
+      Consider using UV for adding packages:
+      `uv add ...`
+      UV is a fast Python package manager. `uv add` will install packages and add them to your `pyproject.toml`.
+    conditions:
+      - pattern: "\\bpip\\s+install\\b" # Matches 'pip install'
+
+  - type: suggest
+    message: |
+      Consider using UV for removing packages:
+      `uv remove ...`
+      `uv remove` will uninstall packages and remove them from your `pyproject.toml`.
+    conditions:
+      - pattern: "\\bpip\\s+uninstall\\b" # Matches 'pip uninstall'
+
+  - type: suggest
+    message: |
+      Consider using UV for virtual environment creation:
+      `uv venv [OPTIONS] [NAME|.venv]`
+      Example: `uv venv` (creates .venv in current directory)
+      Example: `uv venv my-env` (creates a venv named my-env)
+    conditions:
+      - pattern: "\\\\bpython(3)?\\\\s+-m\\\\s+venv\\\\b" # Matches 'python -m venv' or 'python3 -m venv'
+
+  - type: suggest
+    message: |
+      Consider using UV for virtual environment creation instead of `virtualenv`:
+      `uv venv [OPTIONS] [NAME|.venv]`
+      Example: `uv venv`
+    conditions:
+      - pattern: "\\\\bvirtualenv\\\\b" # Matches 'virtualenv' command
+
+  - type: suggest
+    message: |
+      UV can manage virtual environments automatically.
+      Commands like `uv add`, `uv remove`, or `uv run` will create a virtual environment if one doesn't exist, or use an existing one (e.g., `.venv`).
+      If you need to create a venv explicitly (e.g., with a specific Python version), you can use:
+      `uv venv [OPTIONS] [NAME|.venv]`
+      Example: `uv venv -p 3.9` (creates .venv with Python 3.9)
+    conditions:
+      - pattern: "\\bpython(3)?\\s+-m\\s+venv\\b" # Matches 'python -m venv' or 'python3 -m venv'
+
+  - type: suggest
+    message: |
+      UV can manage virtual environments automatically, often replacing the need for `virtualenv`.
+      Commands like `uv add`, `uv remove`, or `uv run` will create a virtual environment if one doesn't exist, or use an existing one (e.g., `.venv`).
+      If you need to create a venv explicitly (e.g., with a specific Python version), you can use:
+      `uv venv [OPTIONS] [NAME|.venv]`
+      Example: `uv venv --python 3.10 my-env`
+    conditions:
+      - pattern: "\\bvirtualenv\\b" # Matches 'virtualenv' command
+
+  - type: suggest
+    message: |
+      Explicit virtual environment activation is often unnecessary with UV.
+      Commands like `uv add`, `uv remove`, and `uv run` automatically detect and use the appropriate virtual environment (e.g., `.venv` in your project or an activated one).
+      If you use `uv venv` to create an environment, it provides activation instructions, but you usually don't need to activate it to use other `uv` commands.
+      For running scripts within the environment: `uv run your_script.py`
+    conditions:
+      # Regex for variations of source activate / activate.bat / activate.ps1
+      # Matches common activation commands for bash, zsh, fish, csh, cmd, powershell.
+      - pattern: "(^|\\\\s|;|&&|\\\\|\\\\|)source\\\\s+.*?(/bin/activate|activate\\\\.sh|activate\\\\.fish|activate\\\\.csh)|^call\\\\s+.*?(\\\\\\\\Scripts\\\\\\\\activate\\\\.bat|activate\\\\.bat)|^\\\\.\\\\s+.*?(\\\\\\\\Scripts\\\\\\\\activate\\\\.ps1|activate\\\\.ps1)"
+
+  - type: suggest
+    message: |
+      For running Python scripts, consider using `uv run`:
+      `uv run your_script.py [SCRIPT_ARGS]`
+      Or, if passing arguments to the python interpreter itself:
+      `uv run python [PYTHON_ARGS] your_script.py -- [SCRIPT_ARGS]`
+      `uv run` ensures the script runs within the correct UV-managed environment.
+    conditions:
+      # Matches 'python script.py' or 'python3 script.py', allowing one optional single-letter flag for python.
+      # Example: `python my.py`, `python3 other.py`, `python -u main.py`
+      # Avoids matching `python -m ...`, `python -c ...`, etc.
+      - pattern: "\\\\bpython(3)?(\\\\s+-[a-zA-Z]){0,1}\\\\s+([^-\\\\s][^\\\\s]*\\\\.py)\\\\b"
+
+examples:
+  - input: |
+      # Potentially outdated practices:
+      pip install requests
+      python3 -m venv .venv
+      source .venv/bin/activate
+      python myapp.py -d
+      virtualenv new_env
+      call .env\\\\Scripts\\\\activate.bat
+      . .env/Scripts/activate.ps1
+    output: |
+      # Suggested UV alternatives (examples of messages that would appear):
+
+      # For 'pip install requests':
+      #   Consider using UV for adding packages:
+      #   `uv add ...`
+
+      # For 'python3 -m venv .venv':
+      #   UV can manage virtual environments automatically.
+      #   Commands like `uv add`, `uv remove`, or `uv run` will create/use a venv.
+      #   For explicit creation: `uv venv [OPTIONS] [NAME|.venv]`
+
+      # For 'source .venv/bin/activate':
+      #   Explicit virtual environment activation is often unnecessary with UV.
+      #   `uv add/remove/run` automatically use the correct venv.
+
+      # For 'python myapp.py -d':
+      #   For running Python scripts, consider using `uv run`:
+      #   `uv run myapp.py -- -d`
+
+      # For 'virtualenv new_env':
+      #   UV can manage virtual environments automatically, often replacing `virtualenv`.
+      #   Commands like `uv add`, `uv remove`, or `uv run` will create/use a venv.
+      #   For explicit creation: `uv venv [OPTIONS] [NAME|.venv]`
+
+      # For 'call .env\\Scripts\\activate.bat' or '. .env/Scripts/activate.ps1':
+      #   Explicit virtual environment activation is often unnecessary with UV.
+      #   `uv add/remove/run` automatically use the correct venv.
+
+metadata:
+  priority: medium
+  version: 1.0
+  author: Gemini
+</rule>
+
+
+
+
+
