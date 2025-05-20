@@ -75,12 +75,12 @@ class RedditClient:
             # Section: [ SECTION_TITLE ] -> ## SECTION_TITLE
             section_match = section_pattern.match(line)
             if section_match:
-                processed_lines.append(f"## {section_match.group(1).strip()}")
+                processed_lines.append(f"### {section_match.group(1).strip()}")
                 continue
             # Subsection: SUBSECTION_TITLE: -> ### SUBSECTION_TITLE (not in bullet/indented)
             subsection_match = subsection_pattern.match(line)
             if subsection_match:
-                processed_lines.append(f"### {subsection_match.group(1).strip()}")
+                processed_lines.append(f"#### {subsection_match.group(1).strip()}")
                 continue
             processed_lines.append(line)
         return "\n".join(processed_lines)
