@@ -46,7 +46,7 @@ class RedditClient:
     def _format_post_title(self, event: ParsedSteamEvent) -> str:
         """Formats the title for the Reddit post."""
         date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime('%d/%m/%Y')
-        return f"Counter-Strike 2 update for: {date_str}"
+        return f"Counter-Strike 2 update for {date_str}"
 
     def _convert_bbcode_to_markdown(self, bbcode_text: str) -> str:
         """Converts BBCode text to Markdown."""
@@ -56,7 +56,6 @@ class RedditClient:
 
         # Then, convert HTML to Markdown
         h = html2text.HTML2Text()
-        # h.ignore_links = True # Example: configure options if needed
         markdown_output = h.handle(html_output)
         return markdown_output.strip() # Remove any leading/trailing whitespace
 
@@ -70,14 +69,8 @@ class RedditClient:
         markdown_body = self._convert_bbcode_to_markdown(event.body_bbcode)
         body_parts.append(markdown_body)
 
-        if event.url:
-            body_parts.append(f"\n\n---\nSource: [{event.title}]({event.url})")
-        else:
-            body_parts.append("\n\n---\n(Source link not available)")
-        
-        # Add a small footer indicating it's a bot post
-        body_parts.append("\n\n---\n^I'm ^a ^bot ^that ^posts ^CS2 ^game ^updates. ^Issues? ^Contact ^my ^developer.")
-
+        body_parts.append(f"\n\n---\nSource: [{event.title}]({event.url})")
+       
         return "\n".join(body_parts)
 
     def _find_flair_id(self, subreddit_name: str, flair_text: str) -> Optional[str]:
