@@ -65,7 +65,9 @@ class RedditClient:
         # Then, convert HTML to Markdown
         h = html2text.HTML2Text()
         markdown_output = h.handle(html_output)
-        markdown_output = markdown_output.strip()  # Remove any leading/trailing whitespace
+        markdown_output = (
+            markdown_output.strip()
+        )  # Remove any leading/trailing whitespace
 
         # Post-process for custom section/subsection formatting
         processed_lines = []

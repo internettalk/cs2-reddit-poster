@@ -62,7 +62,10 @@ def polling_loop(
 
                     # Enforce 2-hour Reddit post rate limit
                     current_time = int(time.time())
-                    if last_reddit_post_time is not None and (current_time - last_reddit_post_time) < 7200:
+                    if (
+                        last_reddit_post_time is not None
+                        and (current_time - last_reddit_post_time) < 7200
+                    ):
                         wait_time = 7200 - (current_time - last_reddit_post_time)
                         logger.warning(
                             f"Reddit post rate limit in effect. Last post was {current_time - last_reddit_post_time} seconds ago. Skipping posting. Next post allowed in {wait_time} seconds."
@@ -78,7 +81,9 @@ def polling_loop(
                     if success:
                         last_posttime = event.timestamp  # Update last_posttime to the timestamp of the successfully posted event
                         set_last_processed_posttime(app_state, last_posttime)
-                        last_reddit_post_time = current_time  # Update last_reddit_post_time
+                        last_reddit_post_time = (
+                            current_time  # Update last_reddit_post_time
+                        )
                         set_last_reddit_post_time(app_state, last_reddit_post_time)
                         save_state(
                             app_state, config
