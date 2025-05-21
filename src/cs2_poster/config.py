@@ -21,7 +21,7 @@ def load_configuration() -> AppConfig:
 
     return AppConfig(
         steam_poll_interval_seconds=int(
-            os.environ.get("STEAM_POLL_INTERVAL_SECONDS", 60)
+            os.environ.get("STEAM_POLL_INTERVAL_SECONDS", 10)
         ),
         state_file_path=os.environ.get("STATE_FILE_PATH", "app_state.json"),
         reddit_credentials=reddit_creds,
