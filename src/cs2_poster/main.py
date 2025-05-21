@@ -67,7 +67,12 @@ def polling_loop(
                         logger.warning(
                             f"Reddit post rate limit in effect. Last post was {current_time - last_reddit_post_time} seconds ago. Skipping posting. Next post allowed in {wait_time} seconds."
                         )
-                        break  # Stop processing further events in this batch
+                        # Still update last_processed_event_posttime and save state
+                        last_posttime = event.timestamp
+                        set_last_processed_posttime(app_state, last_posttime)
+                        save_state(app_state, config)
+                        processed_event_in_batch = True
+                        continue  # Move to next event in the batch
 
                     success = reddit_client.post_update(event)
                     if success:
