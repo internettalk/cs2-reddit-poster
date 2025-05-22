@@ -43,70 +43,51 @@ def polling_loop(
     logger.info(f"Initial last processed event posttime: {last_posttime}")
     logger.info(f"Initial last Reddit post time: {last_reddit_post_time}")
 
-    while True:  # Changed from `while keep_running`
+    while True:
         logger.info("Polling for new CS2 updates...")
         try:
-            new_events: List[ParsedSteamEvent] = steam_client.fetch_latest_events(
-                last_event_posttime=last_posttime
-            )
+            event = steam_client.fetch_latest_event(last_event_posttime=last_posttime)
 
-            if not new_events:
-                logger.info("No new events to post.")
+            if not event:
+                logger.info("No new event to post.")
             else:
-                logger.info(f"Found {len(new_events)} new event(s) to process.")
-                processed_event_in_batch = False
-                for event in new_events:  # Processed oldest to newest by steam_client
-                    logger.info(
-                        f"Processing event: GID '{event.gid}', Title '{event.title}'"
+                logger.info(f"Processing event: GID '{event.gid}', Title '{event.title}'")
+
+                # Enforce 2-hour Reddit post rate limit
+                current_time = int(time.time())
+                if (
+                    last_reddit_post_time is not None
+                    and (current_time - last_reddit_post_time) < 7200
+                ):
+                    wait_time = 7200 - (current_time - last_reddit_post_time)
+                    logger.warning(
+                        f"Reddit post rate limit in effect. Last post was {current_time - last_reddit_post_time} seconds ago. Skipping posting. Next post allowed in {wait_time} seconds."
                     )
+                    # Still update last_processed_event_posttime and save state
+                    last_posttime = event.timestamp
+                    set_last_processed_posttime(app_state, last_posttime)
+                    save_state(app_state, config)
+                    continue
 
-                    # Enforce 2-hour Reddit post rate limit
-                    current_time = int(time.time())
-                    if (
-                        last_reddit_post_time is not None
-                        and (current_time - last_reddit_post_time) < 7200
-                    ):
-                        wait_time = 7200 - (current_time - last_reddit_post_time)
-                        logger.warning(
-                            f"Reddit post rate limit in effect. Last post was {current_time - last_reddit_post_time} seconds ago. Skipping posting. Next post allowed in {wait_time} seconds."
-                        )
-                        # Still update last_processed_event_posttime and save state
-                        last_posttime = event.timestamp
-                        set_last_processed_posttime(app_state, last_posttime)
-                        save_state(app_state, config)
-                        processed_event_in_batch = True
-                        continue  # Move to next event in the batch
-
-                    success = reddit_client.post_update(event)
-                    if success:
-                        last_posttime = event.timestamp  # Update last_posttime to the timestamp of the successfully posted event
-                        set_last_processed_posttime(app_state, last_posttime)
-                        last_reddit_post_time = (
-                            current_time  # Update last_reddit_post_time
-                        )
-                        set_last_reddit_post_time(app_state, last_reddit_post_time)
-                        save_state(
-                            app_state, config
-                        )  # Save state after each successful post
-                        processed_event_in_batch = True
-                        logger.info(
-                            f"Successfully processed and posted event GID: {event.gid}, Posttime: {last_posttime}"
-                        )
-                    else:
-                        logger.error(
-                            f"Failed to post event GID: {event.gid}. Will retry this event in the next cycle if it's still fetched."
-                        )
-                        break  # Stop processing this batch on first error to avoid spamming or hitting rate limits
-
-                if processed_event_in_batch:
-                    logger.info("Finished processing batch of new events.")
+                success = reddit_client.post_update(event)
+                if success:
+                    last_posttime = event.timestamp
+                    set_last_processed_posttime(app_state, last_posttime)
+                    last_reddit_post_time = current_time
+                    set_last_reddit_post_time(app_state, last_reddit_post_time)
+                    save_state(app_state, config)
+                    logger.info(
+                        f"Successfully processed and posted event GID: {event.gid}, Posttime: {last_posttime}"
+                    )
+                else:
+                    logger.error(
+                        f"Failed to post event GID: {event.gid}. Will retry this event in the next cycle if it's still fetched."
+                    )
 
         except Exception as e:
             logger.error(
                 f"An unexpected error occurred in the polling loop: {e}", exc_info=True
             )
-            # Continue loop after error, but wait before retrying to avoid rapid-fire errors
-            # if it's a persistent issue.
             error_wait_time = 30  # seconds
             logger.info(
                 f"Waiting for {error_wait_time} seconds after unexpected error before next poll."
