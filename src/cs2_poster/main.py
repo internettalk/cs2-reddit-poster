@@ -2,7 +2,7 @@
 
 import sys
 import time
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 import praw
 from urllib.parse import urlparse, parse_qs
 
@@ -32,15 +32,17 @@ auth_app = typer.Typer(
 app.add_typer(auth_app)
 
 
-def initialize_polling_state(config: AppConfig) -> Tuple[object, Optional[int], Optional[int]]:
+def initialize_polling_state(
+    config: AppConfig,
+) -> Tuple[object, Optional[int], Optional[int]]:
     """Initialize and return the polling state."""
     app_state = load_state(config)
     last_posttime = get_last_processed_posttime(app_state)
     last_reddit_post_time = get_last_reddit_post_time(app_state)
-    
+
     logger.info(f"Initial last processed event posttime: {last_posttime}")
     logger.info(f"Initial last Reddit post time: {last_reddit_post_time}")
-    
+
     return app_state, last_posttime, last_reddit_post_time
 
 
@@ -48,10 +50,10 @@ def should_skip_due_to_rate_limit(last_reddit_post_time: Optional[int]) -> bool:
     """Check if we should skip posting due to rate limiting."""
     if last_reddit_post_time is None:
         return False
-    
+
     current_time = int(time.time())
     time_since_last_post = current_time - last_reddit_post_time
-    
+
     if time_since_last_post < 7200:  # 2 hours
         wait_time = 7200 - time_since_last_post
         logger.warning(
@@ -59,7 +61,7 @@ def should_skip_due_to_rate_limit(last_reddit_post_time: Optional[int]) -> bool:
             f"Next post allowed in {wait_time} seconds."
         )
         return True
-    
+
     return False
 
 
@@ -68,18 +70,18 @@ def process_event(
     app_state: object,
     config: AppConfig,
     reddit_client: RedditClient,
-    last_reddit_post_time: Optional[int]
+    last_reddit_post_time: Optional[int],
 ) -> Tuple[int, Optional[int]]:
     """Process a single event and return updated timestamps."""
     logger.info(f"Processing event: GID '{event.gid}', Title '{event.title}'")
-    
+
     # Check rate limit
     if should_skip_due_to_rate_limit(last_reddit_post_time):
         # Update state but skip posting
         set_last_processed_posttime(app_state, event.timestamp)
         save_state(app_state, config)
         return event.timestamp, last_reddit_post_time
-    
+
     # Attempt to post
     success = reddit_client.post_update(event)
     if success:
@@ -90,11 +92,15 @@ def process_event(
         logger.info(f"Successfully processed and posted event GID: {event.gid}")
         return event.timestamp, current_time
     else:
-        logger.error(f"Failed to post event GID: {event.gid}. Will retry in next cycle.")
+        logger.error(
+            f"Failed to post event GID: {event.gid}. Will retry in next cycle."
+        )
         return event.timestamp, last_reddit_post_time
 
 
-def polling_loop(config: AppConfig, steam_client: SteamClient, reddit_client: RedditClient):
+def polling_loop(
+    config: AppConfig, steam_client: SteamClient, reddit_client: RedditClient
+):
     """The main polling loop for fetching updates and posting them."""
     app_state, last_posttime, last_reddit_post_time = initialize_polling_state(config)
 
@@ -115,7 +121,9 @@ def polling_loop(config: AppConfig, steam_client: SteamClient, reddit_client: Re
             time.sleep(30)  # Wait 30 seconds after error
             continue
 
-        logger.debug(f"Waiting {config.steam_poll_interval_seconds} seconds before next poll...")
+        logger.debug(
+            f"Waiting {config.steam_poll_interval_seconds} seconds before next poll..."
+        )
         time.sleep(config.steam_poll_interval_seconds)
 
 
@@ -123,8 +131,10 @@ def setup_praw(app_config: AppConfig) -> praw.Reddit:
     """Setup Reddit authentication for token generation."""
     creds = app_config.reddit_credentials
     if not all([creds.client_id, creds.client_secret, creds.user_agent]):
-        raise ValueError("Missing Reddit credentials (client_id, client_secret, or user_agent)")
-    
+        raise ValueError(
+            "Missing Reddit credentials (client_id, client_secret, or user_agent)"
+        )
+
     return praw.Reddit(
         client_id=creds.client_id,
         client_secret=creds.client_secret,
@@ -143,11 +153,11 @@ def get_auth_code_from_user(reddit_auth: praw.Reddit) -> str:
 
     logger.info("Please open this URL in your browser:")
     logger.info(auth_url)
-    
+
     redirect_url = typer.prompt(
         "After authorizing, paste the full redirect URL (starting with http://localhost:8080)"
     )
-    
+
     if not redirect_url:
         raise ValueError("No redirect URL provided")
 
@@ -171,7 +181,7 @@ def generate_refresh_token():
         app_config = load_configuration()
         praw_instance = setup_praw(app_config)
         auth_code = get_auth_code_from_user(praw_instance)
-        
+
         logger.info("Fetching refresh token...")
         refresh_token = praw_instance.auth.authorize(auth_code)
 
@@ -190,12 +200,12 @@ def initialize_clients(app_config: AppConfig) -> Tuple[SteamClient, RedditClient
     try:
         steam_client = SteamClient(app_config)
         reddit_client = RedditClient(app_config)
-        
+
         if not reddit_client.reddit:
             raise RuntimeError("Reddit client failed to initialize")
-            
+
         return steam_client, reddit_client
-        
+
     except Exception as e:
         logger.critical(f"Failed to initialize clients: {e}", exc_info=True)
         sys.exit(1)
@@ -205,7 +215,7 @@ def initialize_clients(app_config: AppConfig) -> Tuple[SteamClient, RedditClient
 def main():
     """Entry point for the CS2 Update Announcer application."""
     setup_logging()
-    
+
     try:
         app_config = load_configuration()
     except Exception as e:
@@ -213,9 +223,9 @@ def main():
         sys.exit(1)
 
     logger.info("CS2 Update Announcer starting...")
-    
+
     steam_client, reddit_client = initialize_clients(app_config)
-    
+
     try:
         polling_loop(app_config, steam_client, reddit_client)
     except KeyboardInterrupt:

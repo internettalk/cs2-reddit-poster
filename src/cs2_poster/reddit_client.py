@@ -197,7 +197,9 @@ class RedditClient:
         logger.info(f"Attempting to post {post_type} to r/{subreddit_name}: '{title}'")
 
         try:
-            submission = self.reddit.subreddit(subreddit_name).submit(**submission_params)
+            submission = self.reddit.subreddit(subreddit_name).submit(
+                **submission_params
+            )
             logger.success(
                 f"Successfully posted {post_type} to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}"
             )

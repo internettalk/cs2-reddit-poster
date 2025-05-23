@@ -1,6 +1,6 @@
 import httpx
 from loguru import logger
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 
 from .data_models import AppConfig, ParsedSteamEvent
 
@@ -76,7 +76,7 @@ class SteamClient:
             normalized_title = title.lower()
             keywords = ["update", "release notes", "patch"]
             is_cs2_patchnote = any(keyword in normalized_title for keyword in keywords)
-            
+
             if not is_cs2_patchnote:
                 logger.debug(
                     f"Event with title '{title}' doesn't seem to be a CS2 update, but will post as general announcement (announcement GID: {ann_gid})."
@@ -117,7 +117,9 @@ class SteamClient:
             data = response.json()
 
             if not data.get("success") == 1:
-                logger.error(f"Steam API indicated failure: {data.get('err_msg', 'No error message')}")
+                logger.error(
+                    f"Steam API indicated failure: {data.get('err_msg', 'No error message')}"
+                )
                 return None
 
             raw_events = data.get("events", [])
@@ -129,7 +131,10 @@ class SteamClient:
                 parsed_event = self._parse_event_data(event_data)
                 if parsed_event:
                     # Only consider the first valid event (newest)
-                    if last_event_posttime is None or parsed_event.timestamp > last_event_posttime:
+                    if (
+                        last_event_posttime is None
+                        or parsed_event.timestamp > last_event_posttime
+                    ):
                         return parsed_event
                     else:
                         return None
