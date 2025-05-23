@@ -185,7 +185,7 @@ class RedditClient:
         else:
             title = event.title
             submission_params = {
-                "title": title,
+                "title": f"CS2 update: {title}",
                 "url": event.url,
                 "send_replies": False,
             }
