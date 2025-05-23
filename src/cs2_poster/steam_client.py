@@ -69,14 +69,18 @@ class SteamClient:
                 )
                 return None
 
-            # Filter out non-CS2 update events.
+            # Process patch notes differently from other announcements.
+            # The category, while visible on the page, isn't accessible via either JSON API or RSS feed.
+            # So we need to check the title for keywords to determine if this is a patch note.
+            # We don't want to post complex announcements as Markdown: we can't render it properly.
             normalized_title = title.lower()
-            keywords = ["update", "release notes", "patch", "counter-strike 2"]
-            if not any(keyword in normalized_title for keyword in keywords):
+            keywords = ["update", "release notes", "patch"]
+            is_cs2_patchnote = any(keyword in normalized_title for keyword in keywords)
+            
+            if not is_cs2_patchnote:
                 logger.debug(
-                    f"Skipping event with title '{title}' as it doesn't seem to be a CS2 update (announcement GID: {ann_gid})."
+                    f"Event with title '{title}' doesn't seem to be a CS2 update, but will post as general announcement (announcement GID: {ann_gid})."
                 )
-                return None
 
             event_url = f"https://store.steampowered.com/news/app/730/view/{ann_gid}"
 
@@ -86,6 +90,7 @@ class SteamClient:
                 timestamp=post_time,
                 body_bbcode=body_content,
                 url=event_url,
+                is_cs2_patchnote=is_cs2_patchnote,
             )
         except Exception as e:
             logger.error(

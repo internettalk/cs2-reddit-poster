@@ -90,6 +90,7 @@ class ParsedSteamEvent:
     )
     timestamp: int  # Unix timestamp (from announcement_body.posttime)
     url: Optional[str] = None  # Link to the announcement
+    is_cs2_patchnote: bool = True  # Whether this is a CS2 update (matching keywords) or general announcement
 
 
 @dataclass

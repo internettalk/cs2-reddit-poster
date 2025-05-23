@@ -127,14 +127,33 @@ class RedditClient:
             )
         return None
 
+    def _handle_submission_error(self, e: Exception, subreddit_name: str) -> None:
+        """Handle common submission errors with appropriate logging."""
+        if isinstance(e, prawcore.exceptions.Forbidden):
+            logger.error(
+                f"Reddit API error (Forbidden 403): {e}. Check bot permissions on r/{subreddit_name}. Does the bot have posting rights? Is it banned?",
+                exc_info=True,
+            )
+        elif isinstance(e, prawcore.exceptions.PrawcoreException):
+            logger.error(
+                f"Reddit API error while posting to r/{subreddit_name}: {e}",
+                exc_info=True,
+            )
+        else:
+            logger.error(
+                f"An unexpected error occurred while posting to Reddit: {e}",
+                exc_info=True,
+            )
+
     def post_update(self, event: ParsedSteamEvent) -> bool:
         """Submits a new post to the configured subreddit for the given event.
+
+        For CS2 updates: Posts as self-post with formatted content
+        For general announcements: Posts as link post with announcement title
 
         Returns True if successful, False otherwise.
         This method is async, but PRAW calls are synchronous, so they are run in a thread.
         """
-        title = self._format_post_title(event)
-        body = self._format_post_body(event)
         subreddit_name = self.target_subreddit
         flair_id_to_use = None
 
@@ -154,37 +173,35 @@ class RedditClient:
                     f"Could not find flair ID for '{self.reddit_flair_text}'. Posting without flair."
                 )
 
-        logger.info(f"Attempting to post to r/{subreddit_name}: '{title}'")
-
-        try:
+        # Prepare submission parameters based on event type
+        if event.is_cs2_patchnote:
+            title = self._format_post_title(event)
             submission_params = {
                 "title": title,
-                "selftext": body,
+                "selftext": self._format_post_body(event),
+                "send_replies": False,
             }
-            if flair_id_to_use:
-                submission_params["flair_id"] = flair_id_to_use
+            post_type = "CS2 update"
+        else:
+            title = event.title
+            submission_params = {
+                "title": title,
+                "url": event.url,
+                "send_replies": False,
+            }
+            post_type = "general announcement"
 
-            submission = self.reddit.subreddit(subreddit_name).submit(
-                **submission_params
-            )
+        if flair_id_to_use:
+            submission_params["flair_id"] = flair_id_to_use
+
+        logger.info(f"Attempting to post {post_type} to r/{subreddit_name}: '{title}'")
+
+        try:
+            submission = self.reddit.subreddit(subreddit_name).submit(**submission_params)
             logger.success(
-                f"Successfully posted to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}"
+                f"Successfully posted {post_type} to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}"
             )
             return True
-        except prawcore.exceptions.Forbidden as e:
-            logger.error(
-                f"Reddit API error (Forbidden 403): {e}. Check bot permissions on r/{subreddit_name}. Does the bot have posting rights? Is it banned?",
-                exc_info=True,
-            )
-        except prawcore.exceptions.PrawcoreException as e:
-            logger.error(
-                f"Reddit API error while posting to r/{subreddit_name}: {e}",
-                exc_info=True,
-            )
         except Exception as e:
-            logger.error(
-                f"An unexpected error occurred while posting to Reddit: {e}",
-                exc_info=True,
-            )
-
-        return False
+            self._handle_submission_error(e, subreddit_name)
+            return False
