@@ -9,9 +9,12 @@ dependencies = [
     "html2text>=2025.4.15",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
-    "praw>=7.8.1",
+    "praw",
     "python-dotenv>=1.1.0",
     "rich>=14.0.0",
     "ruff>=0.11.10",
     "typer>=0.15.4",
 ]
+
+[tool.uv.sources]
+praw = { git = "https://github.com/aaronjbecker/praw.git", rev = "add-text-to-other-post-types" }
