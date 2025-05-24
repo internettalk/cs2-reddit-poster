@@ -97,8 +97,6 @@ class RedditClient:
         markdown_body = self._convert_bbcode_to_markdown(event.body_bbcode)
         body_parts.append(markdown_body)
 
-        body_parts.append(f"\n\n---\nSource: [{event.title}]({event.url})")
-
         return "\n".join(body_parts)
 
     def _find_flair_id(self, subreddit_name: str, flair_text: str) -> Optional[str]:
@@ -178,6 +176,7 @@ class RedditClient:
             title = self._format_post_title(event)
             submission_params = {
                 "title": title,
+                "url": event.url,
                 "selftext": self._format_post_body(event),
                 "send_replies": False,
             }
