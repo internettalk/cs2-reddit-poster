@@ -93,6 +93,7 @@ class ParsedSteamEvent:
     is_cs2_patchnote: bool = (
         True  # Whether this is a CS2 update (matching keywords) or general announcement
     )
+    sequence_number: int = 1  # Which patch note this is for the day (1 = first, 2 = second, etc.)
 
 
 @dataclass

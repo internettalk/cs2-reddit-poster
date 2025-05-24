@@ -54,7 +54,13 @@ class RedditClient:
     def _format_post_title(self, event: ParsedSteamEvent) -> str:
         """Formats the title for the Reddit post."""
         date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime("%m/%d/%Y")
-        return f"Counter-Strike 2 Update for {date_str}"
+        base_title = f"Counter-Strike 2 Update for {date_str}"
+        
+        # Add sequence number suffix if this is not the first patch note of the day
+        if event.sequence_number > 1:
+            base_title += f" #{event.sequence_number}"
+            
+        return base_title
 
     def _convert_bbcode_to_markdown(self, bbcode_text: str) -> str:
         """Converts BBCode text to Markdown, then applies custom formatting for sections and subsections."""

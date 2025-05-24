@@ -1,6 +1,7 @@
 import httpx
 from loguru import logger
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from datetime import datetime, UTC
 
 from .data_models import AppConfig, ParsedSteamEvent
 
@@ -36,13 +37,14 @@ class SteamClient:
         logger.info("SteamClient initialized.")
 
     def _parse_event_data(
-        self, event_data: Dict[str, Any]
+        self, event_data: Dict[str, Any], raw_events: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[ParsedSteamEvent]:
         """
         Parses raw event data from Steam into a ParsedSteamEvent object.
 
         Args:
             event_data: A dictionary representing a single event from Steam.
+            raw_events: Optional list of all raw events for sequence number calculation.
 
         Returns:
             A ParsedSteamEvent object if parsing is successful, None otherwise.
@@ -83,6 +85,11 @@ class SteamClient:
                 )
 
             event_url = f"https://store.steampowered.com/news/app/730/view/{ann_gid}"
+            
+            # Calculate sequence number if raw_events is provided
+            sequence_number = 1
+            if raw_events and is_cs2_patchnote:
+                sequence_number = self._calculate_sequence_number_for_event(post_time, raw_events)
 
             return ParsedSteamEvent(
                 gid=ann_gid,  # This is the announcement GID
@@ -91,12 +98,44 @@ class SteamClient:
                 body_bbcode=body_content,
                 url=event_url,
                 is_cs2_patchnote=is_cs2_patchnote,
+                sequence_number=sequence_number,
             )
         except Exception as e:
             logger.error(
                 f"Error parsing event data: {e}. Data: {event_data}", exc_info=True
             )
             return None
+            
+    def _calculate_sequence_number_for_event(self, target_timestamp: int, raw_events: List[Dict[str, Any]]) -> int:
+        """
+        Calculate the sequence number for a CS2 patch note within its day.
+        
+        Args:
+            target_timestamp: The timestamp of the target event
+            raw_events: All raw event data from the API response (ordered by time)
+            
+        Returns:
+            The sequence number (1 for first patch note of the day, 2 for second, etc.)
+        """
+        # Get the date of the target event
+        target_date = datetime.fromtimestamp(target_timestamp, UTC).date()
+        
+        # Count all CS2 patch notes on the same day
+        sequence_count = 0
+        
+        for event_data in raw_events:
+            parsed_event = self._parse_event_data(event_data)  # Don't pass raw_events to avoid recursion
+            if not parsed_event or not parsed_event.is_cs2_patchnote:
+                continue
+                
+            event_date = datetime.fromtimestamp(parsed_event.timestamp, UTC).date()
+            if event_date == target_date:
+                sequence_count += 1
+            elif event_date < target_date:
+                # We've moved to an earlier date, stop counting
+                break
+                
+        return sequence_count
 
     def fetch_latest_event(
         self, last_event_posttime: Optional[int] = None
@@ -126,19 +165,20 @@ class SteamClient:
             if not raw_events:
                 return None
 
-            # Events from the API are typically newest first.
-            for event_data in raw_events:
-                parsed_event = self._parse_event_data(event_data)
-                if parsed_event:
-                    # Only consider the first valid event (newest)
-                    if (
-                        last_event_posttime is None
-                        or parsed_event.timestamp > last_event_posttime
-                    ):
-                        return parsed_event
-                    else:
-                        return None
+            # Steam returns events ordered by time (newest first).
+            event_data = raw_events[0]
+            parsed_event = self._parse_event_data(event_data, raw_events)
+                
+            # If we have no last event time, or this event is newer, process it
+            if parsed_event and (
+                last_event_posttime is None
+                or parsed_event.timestamp > last_event_posttime
+            ):
+                return parsed_event
+
+            # No new events found
             return None
+
         except Exception as e:
             logger.error(f"Error fetching or parsing Steam event: {e}", exc_info=True)
             return None
