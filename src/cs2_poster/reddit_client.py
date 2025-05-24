@@ -202,6 +202,22 @@ class RedditClient:
             logger.success(
                 f"Successfully posted {post_type} to r/{subreddit_name}: '{title}'. Post ID: {submission.id}, URL: {submission.shortlink}"
             )
+            
+            # For CS2 patch notes, also post the formatted body as a comment
+            if event.is_cs2_patchnote:
+                try:
+                    formatted_body = self._format_post_body(event)
+                    comment = submission.reply(formatted_body)
+                    logger.success(
+                        f"Successfully posted formatted body as comment. Comment ID: {comment.id}"
+                    )
+                except Exception as comment_error:
+                    logger.error(
+                        f"Failed to post formatted body as comment: {comment_error}",
+                        exc_info=True,
+                    )
+                    # Don't return False here as the main post was successful
+            
             return True
         except Exception as e:
             self._handle_submission_error(e, subreddit_name)
