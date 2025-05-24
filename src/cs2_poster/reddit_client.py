@@ -53,8 +53,8 @@ class RedditClient:
 
     def _format_post_title(self, event: ParsedSteamEvent) -> str:
         """Formats the title for the Reddit post."""
-        date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime("%d/%m/%Y")
-        return f"Counter-Strike 2 update for {date_str}"
+        date_str = datetime.fromtimestamp(event.timestamp, UTC).strftime("%m/%d/%Y")
+        return f"Counter-Strike 2 Update for {date_str}"
 
     def _convert_bbcode_to_markdown(self, bbcode_text: str) -> str:
         """Converts BBCode text to Markdown, then applies custom formatting for sections and subsections."""
@@ -185,7 +185,7 @@ class RedditClient:
         else:
             title = event.title
             submission_params = {
-                "title": f"CS2 update: {title}",
+                "title": f"CS2 Blog Update: {title}",
                 "url": event.url,
                 "send_replies": False,
             }
